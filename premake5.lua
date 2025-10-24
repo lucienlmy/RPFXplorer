@@ -14,6 +14,7 @@ workspace "RPFXplorer"
 
     group "dll/lib/rpf"
         include('Code/dll/lib/rpf')
+        links { "crypt32", "ws2_32" } 
     group ""
 
     group "dll/lib/rpf/tests"
