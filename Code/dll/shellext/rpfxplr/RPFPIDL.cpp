@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "RPFPIDL.h"
 
-LPITEMIDLIST _CreateRPFPIDL(_In_ const RPFEntry& rpfEntry, const RPFReader* prpfReader)
+LPITEMIDLIST _CreateRPFPIDL(_In_ const RPFEntry& rpfEntry, RPFReader* prpfReader)
 {
     auto name = prpfReader->GetName(&rpfEntry);
     int nameLen = (name.GetLength() + 1) * sizeof(WCHAR); // +1 for null terminator

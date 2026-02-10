@@ -150,7 +150,8 @@ STDMETHODIMP CRPFDataObject::GetData(_In_ FORMATETC* pformatetcIn, _Out_ STGMEDI
 	WCHAR* pszFiles = (WCHAR*)((BYTE*)pDropFiles + sizeof(DROPFILES));
 	for (const auto& file : fileList)
 	{
-		wcscpy(pszFiles, file.GetString());
+		size_t remainingSize = (totalSize - ((BYTE*)pszFiles - (BYTE*)pDropFiles)) / sizeof(WCHAR);
+		wcscpy_s(pszFiles, remainingSize, file.GetString());
 		pszFiles += file.GetLength() + 1;
 	}
 	*pszFiles = L'\0'; // Final null terminator
