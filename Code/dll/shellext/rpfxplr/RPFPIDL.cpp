@@ -4,18 +4,24 @@
 LPITEMIDLIST _CreateRPFPIDL(_In_ const RPFEntry& rpfEntry, const RPFReader* prpfReader)
 {
     auto name = prpfReader->GetName(&rpfEntry);
-    int size = sizeof(RPFPidlData) + name.GetLength();
+    int nameLen = (name.GetLength() + 1) * sizeof(WCHAR); // +1 for null terminator
+    int size = sizeof(RPFPidlData) - sizeof(WCHAR) + nameLen + sizeof(USHORT); // +sizeof(USHORT) for terminator
 
-    RPFPidlData* pidl = (RPFPidlData*)SHAlloc(size);
+    RPFPidlData* pidl = (RPFPidlData*)CoTaskMemAlloc(size);
     if (!pidl)
         return NULL;
 
     ZeroMemory(pidl, size);
 
-    pidl->rpfEntry = rpfEntry;
+    pidl->cb = (USHORT)(size - sizeof(USHORT)); // Size excluding the terminator
     pidl->uMagicValue = RPF_PIDL_MAGIC;
+    pidl->rpfEntry = rpfEntry;
 
-    StrCpy(pidl->szName, name.GetString());
+    wcscpy_s(pidl->szName, name.GetLength() + 1, name.GetString());
+
+    // Add terminator
+    USHORT* terminator = (USHORT*)((BYTE*)pidl + pidl->cb + sizeof(USHORT));
+    *terminator = 0;
 
     return (LPITEMIDLIST)pidl;
 }

@@ -1,10 +1,10 @@
-name: Build and Package RPFXplorer  
+name: Build and Package RPFXplorer  Joy
   
 on:  
   push:  
-    branches: [ main, Joy ]  
+    branches: [ main, Joy, master, develop, '*' ]  # 支持所有分支
   pull_request:  
-    branches: [ main, Joy ]  
+    branches: [ main, Joy, master ]  
   
 jobs:  
   build:  
@@ -23,12 +23,14 @@ jobs:
         .\vcpkg\vcpkg integrate install  
         echo "VCPKG_ROOT=${{ github.workspace }}\vcpkg" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append  
       
-    - name: Install dependencies from vcpkg.json  
+    - name: Install OpenSSL and dependencies
       run: |  
-        .\vcpkg\vcpkg install --triplet=x64-windows  
+        .\vcpkg\vcpkg install openssl:x64-windows --recurse
+        .\vcpkg\vcpkg install gtest:x64-windows --recurse
+        .\vcpkg\vcpkg integrate install
       
     - name: Setup MSBuild  
-      uses: microsoft/setup-msbuild@v1.1  
+      uses: microsoft/setup-msbuild@v2
       
     - name: Install Premake5  
       run: |  
@@ -37,12 +39,32 @@ jobs:
         echo "${{ github.workspace }}\premake" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append  
       
     - name: Generate Visual Studio solution  
-      run: premake5 vs2022  
+      run: |
+        cd ${{ github.workspace }}
+        .\premake\premake5.exe vs2022
+      
+    - name: Verify solution configuration
+      run: |
+        Write-Host "Checking available configurations in solution..."
+        $content = Get-Content RPFXplorer.sln -Raw
+        if ($content -match "Release\|Win64") {
+          Write-Host "✓ Found Release|Win64 configuration"
+        } else {
+          Write-Host "✗ Release|Win64 configuration not found"
+          Write-Host "Available configurations:"
+          $content | Select-String -Pattern "(\w+)\|(\w+) = (\w+)\|(\w+)" -AllMatches | ForEach-Object { $_.Matches } | ForEach-Object { Write-Host "  - $($_.Value)" }
+        }
       
     - name: Build Release configuration  
-      run: msbuild RPFXplorer.sln /p:Configuration=Release /p:Platform=Win64 /m  
+      run: msbuild RPFXplorer.sln /p:Configuration=Release /p:Platform=Win64 /m /v:minimal
+      
+    - name: List build output
+      run: |
+        Write-Host "Build output directory contents:"
+        Get-ChildItem -Path bin\Release -Recurse | Select-Object FullName
       
     - name: Setup WiX Toolset  
+      continue-on-error: true
       run: |  
         dotnet tool install --global wix  
         wix extension add WixToolset.UI.wixext  
@@ -50,36 +72,57 @@ jobs:
     - name: Build MSI installer
       continue-on-error: true
       run: |
-        cd MSI
-        wix build RPFXplorer.wxs -out RPFXplorer.msi
+        if (Test-Path MSI) {
+          cd MSI
+          wix build RPFXplorer.wxs -out RPFXplorer.msi
+        } else {
+          Write-Host "MSI directory not found, skipping installer build"
+        }
       
     - name: Package uninstaller script
-      continue-on-error: true
       run: |
         New-Item -ItemType Directory -Force -Path uninstaller
-        Copy-Item disable_extension.bat uninstaller/
-        echo "Run disable_extension.bat as administrator to uninstall RPFXplorer Shell Extension" | Out-File -FilePath uninstaller/README.txt
-        Compress-Archive -Path uninstaller/* -DestinationPath RPFXplorer-Uninstaller.zip
+        if (Test-Path enable_extension.bat) {
+          Copy-Item enable_extension.bat uninstaller/
+        }
+        if (Test-Path disable_extension.bat) {
+          Copy-Item disable_extension.bat uninstaller/
+        }
+        echo "Run enable_extension.bat as administrator to install RPFXplorer Shell Extension" | Out-File -FilePath uninstaller/INSTALL.txt
+        echo "Run disable_extension.bat as administrator to uninstall RPFXplorer Shell Extension" | Out-File -FilePath uninstaller/UNINSTALL.txt
+        Compress-Archive -Path uninstaller/* -DestinationPath RPFXplorer-Scripts.zip
       
     - name: Upload Release binaries  
       uses: actions/upload-artifact@v4  
       with:  
         name: RPFXplorer-Binaries  
         path: |  
-          bin/Release/shellext/rpfxplr.dll  
-          bin/Release/rpf.dll  
-          bin/Release/libcrypto-3-x64.dll  
-          bin/Release/tools/aulens.exe  
-          bin/Release/tools/modlense.exe  
+          bin/Release/**/*.dll
+          bin/Release/**/*.exe
+          enable_extension.bat
+          disable_extension.bat
       
     - name: Upload MSI installer  
+      if: success()
+      continue-on-error: true
       uses: actions/upload-artifact@v4  
       with:  
         name: RPFXplorer-Installer  
         path: MSI/RPFXplorer.msi  
       
-    - name: Upload Uninstaller package  
+    - name: Upload Scripts package  
       uses: actions/upload-artifact@v4  
       with:  
-        name: RPFXplorer-Uninstaller  
-        path: RPFXplorer-Uninstaller.zip
+        name: RPFXplorer-Scripts  
+        path: RPFXplorer-Scripts.zip
+        
+    - name: Upload Documentation
+      uses: actions/upload-artifact@v4
+      with:
+        name: RPFXplorer-Documentation
+        path: |
+          README.md
+          QUICK_START.md
+          COMPLETE_IMPLEMENTATION.md
+          BUILD_INSTRUCTIONS.md
+          CHANGELOG.md

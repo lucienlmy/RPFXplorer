@@ -20,6 +20,14 @@ class ATL_NO_VTABLE CRAGEFolder :
 	public IRPF
 {
 private:
+	ATL::CString m_strFilePath;
+	HANDLE m_hFile = NULL;
+	RPFReader m_Reader;
+	PIDLIST_ABSOLUTE m_pidl = NULL;
+	RPFEntry* m_pCurrentDirectory = NULL;  // Current directory entry (NULL = root)
+	bool m_bIsSubFolder = false;           // True if this is a subfolder view
+	CRAGEFolder* m_pParentFolder = NULL;   // Parent folder (for subfolders)
+
 public:
 	CRAGEFolder()
 	{
@@ -27,6 +35,52 @@ public:
 
 	~CRAGEFolder()
 	{
+		if (m_hFile && m_hFile != INVALID_HANDLE_VALUE && !m_bIsSubFolder)
+		{
+			// Only close file handle if we're the root folder
+			m_Reader.Close();
+			CloseHandle(m_hFile);
+			m_hFile = NULL;
+		}
+
+		if (m_pidl)
+		{
+			CoTaskMemFree(m_pidl);
+			m_pidl = NULL;
+		}
+
+		if (m_pCurrentDirectory && m_bIsSubFolder)
+		{
+			delete m_pCurrentDirectory;
+			m_pCurrentDirectory = NULL;
+		}
+
+		// Don't delete parent folder, it's managed by COM
+		m_pParentFolder = NULL;
+	}
+
+	// Helper method to initialize as a subfolder
+	HRESULT InitializeSubFolder(CRAGEFolder* pParent, const RPFEntry* pDirEntry)
+	{
+		if (!pParent || !pDirEntry)
+			return E_INVALIDARG;
+
+		if (pDirEntry->dwType != RPF_ENTRY_TYPE_DIRECTORY)
+			return E_INVALIDARG;
+
+		m_bIsSubFolder = true;
+		m_pParentFolder = pParent;
+		m_pParentFolder->AddRef(); // Keep parent alive
+
+		// Copy the directory entry
+		m_pCurrentDirectory = new RPFEntry();
+		*m_pCurrentDirectory = *pDirEntry;
+
+		// Share the file handle and reader from parent
+		m_hFile = pParent->m_hFile;
+		m_strFilePath = pParent->m_strFilePath;
+
+		return S_OK;
 	}
 
 	//
@@ -85,6 +139,11 @@ public:
 	// IRPF
 	//
 	STDMETHOD(GetRPFReader)				(_Out_ RPFReader** ppReader) override;
+
+	//
+	// Helper methods
+	//
+	RPFEntry* GetCurrentDirectory();
 
 public:
 	DECLARE_NO_REGISTRY()

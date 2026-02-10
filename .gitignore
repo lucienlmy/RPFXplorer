@@ -1,9 +1,89 @@
+# Visual Studio
 .vs/
+*.user
+*.suo
+*.sln.docstates
+*.vcxproj.user
+
+# Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+
+# Compiled files
+*.dll
+*.exe
+*.pdb
+*.ilk
+*.obj
+*.lib
+*.exp
+
+# Premake generated files
 *.sln
 *.vcxproj
 *.vcxproj.filters
-*.vcxproj.user
-*.cab
-obj/
-bin/
+Makefile
+
+# vcpkg
+vcpkg/
 vcpkg_installed/
+
+# Temporary files
+*.tmp
+*.log
+*.aps
+*.cache
+
+# User-specific files
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Build folders
+bin/
+obj/
+ipch/
+*.opensdf
+*.sdf
+*.VC.db
+*.VC.VC.opendb
+
+# ReSharper
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+
+# Test results
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+
+# MSI build
+*.wixobj
+*.wixpdb
+
+# Backup files
+*.bak
+*~
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Keep these files
+!premake5.lua
+!*.bat
+!*.md
+!*.h
+!*.cpp
+!*.c
+!*.rc
+!*.def
+!*.rgs
+!*.wxs
