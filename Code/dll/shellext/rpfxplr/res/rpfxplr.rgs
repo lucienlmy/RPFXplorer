@@ -2,7 +2,7 @@ HKCR
 {
 	NoRemove CLSID
 	{
-		{AFE33D09-58FA-4B49-90AB-A9EF9E7A6C2E} = s 'RAGEArchive'
+		{EBC8C101-27AE-48D8-BDB5-223451B4C2C2} = s 'RAGEArchive'
 		{
 			ProgID = s 'RAGEArchive'
 			InprocServer32 = s '%MODULE%' { val ThreadingModel = s 'Apartment' }
@@ -29,7 +29,7 @@ HKCR
 	NoRemove RAGEArchive
 	{
 		val FriendlyTypeName = s 'RAGE Archive Format'
-		CLSID = s '{AFE33D09-58FA-4B49-90AB-A9EF9E7A6C2E}'
+		CLSID = s '{EBC8C101-27AE-48D8-BDB5-223451B4C2C2}'
 		DefaultIcon = s '%MODULE%'
 		
 		NoRemove Shell
